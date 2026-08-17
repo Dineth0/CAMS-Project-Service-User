@@ -1,5 +1,8 @@
 package lk.ijse.eca.userservice.service.impl;
 
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
 import jakarta.transaction.Transactional;
 import lk.ijse.eca.userservice.dto.PlayerProfileDTO;
 import lk.ijse.eca.userservice.dto.PlayerProfileUpdateRequest;
@@ -12,6 +15,7 @@ import lk.ijse.eca.userservice.service.PlayerService;
 import lk.ijse.eca.userservice.util.VarList;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Path;
@@ -32,7 +36,23 @@ public class PlayerServiceImpl implements PlayerService {
     private final ModelMapper modelMapper;
     private final PlayerRepo playerRepo;
     private final UserRepo userRepo;
+    private final Storage storage;
 
+    @Value("${app.gcp.bucket}")
+    private String bucketName;
+
+    private String uploadImageToGCS(MultipartFile imageFile) throws IOException {
+        String fileName = UUID.randomUUID().toString() + "_" + imageFile.getOriginalFilename();
+
+        BlobId blobId = BlobId.of(bucketName, fileName);
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                .setContentType(imageFile.getContentType())
+                .build();
+
+        storage.create(blobInfo, imageFile.getBytes());
+
+        return "https://storage.googleapis.com/" + bucketName + "/" + fileName;
+    }
     @Override
     public int upgradeUserToPlayer(String email, PlayerProfileUpdateRequest request, MultipartFile imageFile) {
         User user = userRepo.findByEmail(email);
@@ -53,17 +73,8 @@ public class PlayerServiceImpl implements PlayerService {
 
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                String uploadDir = "uploads/player-images/";
-                Path uploadPath = Paths.get(uploadDir);
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-
-                String fileName = UUID.randomUUID().toString() + "_" + imageFile.getOriginalFilename();
-                Path filePath = uploadPath.resolve(fileName);
-
-                Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                playerProfile.setImage(filePath.toString());
+                String imageUrl = uploadImageToGCS(imageFile);
+                playerProfile.setImage(imageUrl);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -167,15 +178,8 @@ public class PlayerServiceImpl implements PlayerService {
 
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                String uploadDir = "uploads/player-images/";
-                Path uploadPath = Paths.get(uploadDir);
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-                String fileName = UUID.randomUUID().toString() + "_" + imageFile.getOriginalFilename();
-                Path filePath = uploadPath.resolve(fileName);
-                Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                playerProfile.setImage(filePath.toString());
+                String imageUrl = uploadImageToGCS(imageFile);
+                playerProfile.setImage(imageUrl);
             } catch (IOException e) {
                 e.printStackTrace();
                 return VarList.Internal_Server_Error;
