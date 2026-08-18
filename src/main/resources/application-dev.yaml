@@ -7,7 +7,7 @@ spring:
 
   cloud:
     config:
-      uri: http://config.platform:9000
+      uri: http://localhost:9000
 
     gcp:
       project-id: impactful-study-477106-j6
