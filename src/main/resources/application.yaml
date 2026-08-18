@@ -11,8 +11,7 @@ spring:
 
     gcp:
       project-id: impactful-study-477106-j6
-      credentials:
-        location: classpath:credentials/impactful-study-477106-j6-0f645b3d3bcd.json
+
 
 
 app:
