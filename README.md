@@ -184,6 +184,4 @@ java -jar target/user-service-0.0.1-SNAPSHOT.jar
 
 > User management microservice for the CAMS platform using Spring Boot, PostgreSQL, Spring Security, Eureka, and Google Cloud Storage.
 
-## License
 
-This project is developed for academic purposes.
